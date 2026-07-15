@@ -20,10 +20,8 @@ target/
 .DS_Store
 Thumbs.db
 
-# Maven Wrapper
-mvnw
-mvnw.cmd
-.mvn/
+# Keep maven-wrapper.jar (needed for Railway build)
+!.mvn/wrapper/maven-wrapper.jar
 
 # H2 Database (file mode)
 *.mv.db

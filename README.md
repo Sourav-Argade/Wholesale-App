@@ -347,20 +347,81 @@ If this hasn't been done yet:
 2. Under "Build and deployment" → **Source**: select **GitHub Actions**
 3. The workflow file at `.github/workflows/deploy-pages.yml` will handle the rest
 
-## GitHub — For Backup/Version Control Only
+## ☁️ Deploy to Railway (Free Cloud Hosting)
 
-This repository on GitHub is for **source code backup and version control** only. The app runs **locally on your laptop** — it is not deployed to any cloud service.
+You can deploy the full Spring Boot backend to Railway's free tier so the app is accessible from **anywhere** (not just local Wi-Fi). No credit card required for the free tier.
 
-```bash
-# After making changes locally, push to GitHub for backup
-git add .
-git commit -m "Describe your changes"
-git push origin main
+### One-Click Deploy from GitHub
+
+Railway auto-detects Spring Boot projects — no configuration needed beyond connecting your repo.
+
+### Step 1: Create a Railway Account
+
+1. Go to **[Railway.app](https://railway.app)** and sign up (GitHub login supported)
+2. No credit card required for the free tier
+
+### Step 2: Connect & Deploy
+
+1. Click **New Project** → **Deploy from GitHub repo**
+2. Select the `Sourav-Argade/Wholesale-App` repository
+3. Railway will automatically:
+   - Detect the `pom.xml` and use the built-in Java builder
+   - Run `./mvnw clean package -DskipTests` to build
+   - Start the app with `java -jar target/*.jar`
+4. Go to the **Deployments** tab to watch the build logs
+
+### Step 3: Get Your Public URL
+
+1. Once the deployment succeeds, go to the **Settings** tab of your service
+2. Find the **Networking** section
+3. Click **Generate Domain** — you'll get a URL like:
+   ```
+   https://wholesale-app.up.railway.app
+   ```
+
+### Step 4: 🎉 You're Live!
+
+Share this URL with your partners — anyone can access the full app from any browser, anywhere in the world.
+
+| User | Login |
+|---|---|
+| **Admin** | `admin` / `admin123` |
+| **Partner** | `partner` / `partner123` |
+
+> ⚠️ **Data Note**: H2 data resets when Railway redeploys. For persistent data, add a free Railway PostgreSQL add-on (see Advanced Options below).
+
+### Connect GitHub Pages to Railway (Optional)
+
+Once deployed, the GitHub Pages landing page can connect to your Railway backend. Edit `docs/js/app.js` and set:
+
+```js
+const API_REMOTE_BASE = 'https://wholesale-app.up.railway.app'; // Your Railway URL
 ```
+
+Now visitors to the GitHub Pages site will automatically connect to the live cloud backend.
+
+### Railway Configuration Files
+
+The project includes these files for Railway deployment:
+
+| File | Purpose |
+|---|---|
+| `Dockerfile` | Multi-stage build (Maven → JRE) for alternative deployment |
+| `railway.toml` | Railway-specific build/deploy configuration |
+| `.mvn/wrapper/` | Maven Wrapper for zero-config builds |
+
+### Deploy to Render (Alternative)
+
+[Render](https://render.com) also supports Spring Boot:
+1. Create a Render account
+2. New **Web Service** → Connect your GitHub repo
+3. Set **Build Command**: `./mvnw clean package -DskipTests`
+4. Set **Start Command**: `java -jar target/*.jar`
+5. Choose the free plan and deploy
 
 ## Advanced Options
 
-### Run with Docker (Optional)
+### Run with Docker (Local)
 
 1. **Install Docker** on your laptop
 2. Build and run:
@@ -369,29 +430,56 @@ git push origin main
    docker run -p 8080:8080 -v ./data:/app/data wholesale-app
    ```
 
+### Add Persistent PostgreSQL on Railway
+
+For data that persists across Railway deploys:
+1. In your Railway project, click **New** → **Database** → **Add PostgreSQL**
+2. Go to the PostgreSQL service **Connect** tab → copy the `DATABASE_URL`
+3. Add this **Environment Variable** to your Spring Boot service: `DATABASE_URL` with the copied value
+4. The app will automatically switch from H2 to PostgreSQL (requires code changes for PostgreSQL dialect)
+
+> For now, H2 works great for a small single-user/small-team app. Export to Excel regularly for backup.
+
 ### Access H2 Console (for debugging)
 
 Open `http://localhost:8080/h2-console` in your browser.
 
 - **JDBC URL:** `jdbc:h2:file:./data/wholesale`
-- **User:** `sa`
-- **Password:** *(leave blank)*
+- **User:** `sourav`
+- **Password:** `1234`
 
 ### Changing Server Port
 
 Edit `src/main/resources/application.properties`:
 ```properties
-server.port=9090  # Change to any port you prefer
+server.port=${PORT:8080}  # PORT env var takes priority, falls back to 8080
 ```
 
 ## Troubleshooting
 
 | Problem | Solution |
 |---|---|
-| **Can't start — port 8080 in use** | Change `server.port` in `application.properties` |
-| **Partners can't connect** | Check firewall settings; ensure same Wi-Fi network |
+| **Can't start — port 8080 in use** | Set env var `PORT=9090` or change `application.properties` |
+| **Partners can't connect (local)** | Check firewall settings; ensure same Wi-Fi network |
+| **Railway deploy fails** | Check build logs in Railway dashboard for Maven errors |
 | **"No suitable driver" error** | Delete the `data/` folder and restart (fresh database) |
 | **Map doesn't load** | Internet connection needed for OpenStreetMap tiles (maps only — no API key) |
+| **Data lost after Railway redeploy** | Add a Railway PostgreSQL add-on for persistent storage |
+
+---
+
+## GitHub — Backup & Deployment
+
+This repository serves two purposes:
+- **Version control** for your source code
+- **Auto-deployment** to GitHub Pages (static shell) and Railway (full backend)
+
+```bash
+# After making changes, push to GitHub — deploys happen automatically
+git add .
+git commit -m "Describe your changes"
+git push origin main
+```
 
 ## License
 

@@ -4,15 +4,20 @@
    - Detects backend availability on load
    - Backend online  → full app (login → dashboard)
    - Backend offline → landing/preview page
+   - Also checks remote Railway backend for cloud-deployed version
    ==================================== */
 
 const API_BASE = '/api';
+// Remote backend URL — update this after deploying to Railway/Render
+// Format: 'https://your-app-name.railway.app'
+const API_REMOTE_BASE = ''; // ← Set this after deployment!
 let authToken = localStorage.getItem('authToken');
 let currentUser = null;
 let currentPage = 'dashboard';
 let mapInstance = null;
 let mapMarkers = [];
 let backendOnline = false;
+let usingRemoteBackend = false;
 
 // ====== DOM References ======
 const $ = (id) => document.getElementById(id);
@@ -38,47 +43,95 @@ async function checkBackend() {
     const bannerText = $('bannerText');
     const statusText = $('statusText');
     const statusBadge = document.querySelector('.status-badge');
+    const retryBtn = document.querySelector('.landing-btn-retry');
+    const setupSection = document.getElementById('setupGuide');
 
+    // First, try the local backend (same origin - for when running locally)
     try {
         const res = await fetch(`${API_BASE}/customers`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' },
-            signal: AbortSignal.timeout(5000)
+            signal: AbortSignal.timeout(4000)
         });
 
         if (res.ok || res.status === 401) {
             // Backend is alive (401 means auth required, which is expected)
             backendOnline = true;
+            usingRemoteBackend = false;
             if (backendBanner) {
                 backendBanner.className = 'backend-banner online';
                 backendBanner.style.display = 'flex';
                 bannerIcon.textContent = '✅';
-                bannerText.innerHTML = 'Backend is running! <a href="#" onclick="showApp()">Go to App →</a>';
+                bannerText.innerHTML = 'Local backend is running! <a href="#" onclick="showApp()">Go to App →</a>';
             }
             if (statusText) {
-                statusText.textContent = '✅ Backend Connected';
+                statusText.textContent = '✅ Local Backend Connected';
             }
             if (statusBadge) {
                 statusBadge.className = 'status-badge online';
                 const dot = statusBadge.querySelector('.status-dot');
                 if (dot) dot.className = 'status-dot online';
             }
+            if (retryBtn) retryBtn.style.display = 'none';
+            if (setupSection) setupSection.style.display = 'none';
             return true;
         }
     } catch (e) {
-        // Backend unavailable
+        // Local backend unavailable
+    }
+
+    // Then, try the remote backend (if configured - for Railway/Render deployment)
+    if (API_REMOTE_BASE) {
+        try {
+            const res = await fetch(`${API_REMOTE_BASE}${API_BASE}/customers`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+                signal: AbortSignal.timeout(4000)
+            });
+
+            if (res.ok || res.status === 401) {
+                backendOnline = true;
+                usingRemoteBackend = true;
+                if (backendBanner) {
+                    backendBanner.className = 'backend-banner online';
+                    backendBanner.style.display = 'flex';
+                    bannerIcon.textContent = '☁️';
+                    bannerText.innerHTML = 'Cloud backend is live! <a href="#" onclick="showApp()">Go to App →</a>';
+                }
+                if (statusText) {
+                    statusText.textContent = '☁️ Cloud Backend Connected';
+                }
+                if (statusBadge) {
+                    statusBadge.className = 'status-badge online';
+                    const dot = statusBadge.querySelector('.status-dot');
+                    if (dot) dot.className = 'status-dot online';
+                }
+                if (retryBtn) retryBtn.style.display = 'none';
+                if (setupSection) setupSection.style.display = 'block';
+                return true;
+            }
+        } catch (e) {
+            // Remote backend unavailable
+        }
     }
 
     backendOnline = false;
+    usingRemoteBackend = false;
     if (backendBanner) {
         backendBanner.className = 'backend-banner offline';
         backendBanner.style.display = 'flex';
         bannerIcon.textContent = '🔌';
-        bannerText.textContent = 'Backend offline — showing app preview. Run the app locally to use all features.';
+        if (API_REMOTE_BASE) {
+            bannerText.textContent = 'Backend unreachable. Run locally or check your cloud deployment.';
+        } else {
+            bannerText.textContent = 'Backend offline — showing app preview. Run the app locally to use all features.';
+        }
     }
     if (statusText) {
         statusText.textContent = 'Backend Offline — Preview Mode';
     }
+    if (retryBtn) retryBtn.style.display = 'inline-flex';
+    if (setupSection) setupSection.style.display = 'block';
     return false;
 }
 
@@ -198,12 +251,17 @@ async function renderPage(page) {
 }
 
 // ====== API Helper ======
+function getApiBase() {
+    return usingRemoteBackend ? API_REMOTE_BASE + API_BASE : API_BASE;
+}
+
 async function api(path, options = {}) {
     const headers = { 'Content-Type': 'application/json', ...options.headers };
     if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
     if (currentUser) headers['X-User-Id'] = currentUser.userId;
 
-    const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+    const base = getApiBase();
+    const res = await fetch(`${base}${path}`, { ...options, headers });
     if (res.status === 401) {
         authToken = null;
         localStorage.removeItem('authToken');
@@ -249,7 +307,7 @@ if (loginForm) {
         }
 
         try {
-            const res = await fetch(`${API_BASE}/auth/login`, {
+            const res = await fetch(`${getApiBase()}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })
@@ -298,7 +356,7 @@ if (logoutBtn) {
 async function initApp() {
     if (authToken) {
         try {
-            const res = await fetch(`${API_BASE}/customers`, {
+            const res = await fetch(`${getApiBase()}/customers`, {
                 headers: { 'Authorization': `Bearer ${authToken}` }
             });
             if (res.ok) {
@@ -1409,7 +1467,7 @@ function renderExcel() {
 
 window.exportExcel = async () => {
     try {
-        const res = await fetch(`${API_BASE}/excel/export`, {
+        const res = await fetch(`${getApiBase()}/excel/export`, {
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
         if (!res.ok) { showToast('Export failed', true); return; }
@@ -1430,7 +1488,7 @@ window.importExcel = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     try {
-        const res = await fetch(`${API_BASE}/excel/import`, {
+        const res = await fetch(`${getApiBase()}/excel/import`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${authToken}` },
             body: formData

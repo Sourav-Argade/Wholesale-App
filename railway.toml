@@ -1,0 +1,9 @@
+[build]
+builder = "nixpacks"
+buildCommand = "./mvnw clean package -DskipTests -B"
+
+[deploy]
+startCommand = "java -jar target/*.jar"
+
+[service]
+name = "wholesale-app"
