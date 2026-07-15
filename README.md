@@ -4,6 +4,123 @@ A **Route & Customer Management App** for wholesale businessmen who travel fixed
 
 Built with **Java + Spring Boot** (backend) and a **mobile-responsive HTML/CSS/JS** frontend using Leaflet.js + OpenStreetMap for free map features.
 
+---
+
+## 📖 App Overview
+
+### What Problem Does This Solve?
+
+If you run a wholesale business and visit different shopkeepers on fixed routes, you've probably faced these problems:
+
+- 🧠 Forgetting customer names, shop locations, or which route they're on
+- 💰 Not remembering the last rate you quoted a customer for each product
+- 📋 Manually tracking daily visits with pen and paper
+- 🤝 Needing to share data with partners who ride along on different routes
+
+This app solves all of that — **in one place, on your own laptop, no internet required**. You and your partners access it from your phones over your local Wi-Fi/hotspot.
+
+---
+
+## 🧭 How the App Works (End-to-End Workflow)
+
+### 1. First-Time Setup
+
+You (the Admin) start by setting up your master data:
+
+```
+[Login as Admin] → [Add Products] → [Add Customers] → [Create Routes] → [Assign Customers to Routes]
+```
+
+- **Products**: What you sell (e.g., "Cooking Oil - 15kg tin" at ₹2,450 default price)
+- **Customers**: Who you sell to (shop name, phone, GPS location — pinned right from your phone)
+- **Routes**: How you organize visits (e.g., "Monday - Sector 5", "Tuesday - Downtown")
+- **Route ordering**: Arrange customers in the order you visit them
+
+### 2. Daily Use (In the Field)
+
+When you or your partners head out for the day:
+
+```
+[Login on Phone] → [Open Route View] → [See customers & their latest prices] → [Check-in at each shop] → [End of day]
+```
+
+**Before leaving**: Open the route to see all customers, their addresses, and last quoted prices.
+**At each shop**:
+  1. Open the **Map View** to navigate to the shop's GPS location
+  2. Tap **Check In** — the app logs the visit with date/time and GPS coordinates
+  3. Set a **new price** for any product if the rate changed today (old rate stays in history)
+
+### 3. End of Day / Reporting
+
+- **Dashboard** shows today's visits at a glance
+- **Price History** lets you review what you charged each customer
+- **Excel Export** gives you a complete backup file you can save on Google Drive, email to yourself, or print
+
+### 4. Multi-User Access
+
+| Role | Can Do |
+|---|---|
+| **Admin** (you) | Add/edit/delete everything — customers, products, routes, prices |
+| **Partner** (your staff) | View all data + check in visits only (cannot modify master data) |
+
+Partners connect from their phone browser via your laptop's local IP (e.g., `http://192.168.1.5:8080`).
+
+### 5. Data Safety
+
+- All data lives in an **H2 file database** on your laptop (`./data/wholesale.mv.db`)
+- **Export to Excel** anytime for offline backup
+- **Import from Excel** to bulk-load existing customer data
+- The app is **not deployed to any cloud** — privacy is guaranteed
+
+---
+
+## 🏗️ Architecture at a Glance
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  PHONE BROWSER (any phone on same Wi-Fi)                    │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │  Single Page App (HTML/CSS/JS)                      │   │
+│  │  • Login page    • Dashboard    • Customer mgmt    │   │
+│  │  • Product mgmt  • Route mgmt   • Map (Leaflet)    │   │
+│  │  • Check-in      • Price history • Excel backup    │   │
+│  └──────────┬──────────────────────────────────────────┘   │
+└─────────────┼───────────────────────────────────────────────┘
+              │ HTTP (REST API) over local network
+              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  YOUR LAPTOP (Spring Boot on port 8080)                     │
+│  ┌─────────┐  ┌──────────┐  ┌────────────┐  ┌──────────┐   │
+│  │Controllers│→│ Services │→│ Repositories│→│  H2 DB   │   │
+│  │(REST API) │  │(Business │  │ (Data      │  │(file)    │   │
+│  │           │  │  Logic)  │  │  Access)   │  │          │   │
+│  └─────────┘  └──────────┘  └────────────┘  └──────────┘   │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+              ┌──────────────────────────────┐
+              │  📁 ./data/wholesale.mv.db    │
+              │  📁 ./wholesale_backup.xlsx    │
+              └──────────────────────────────┘
+```
+
+---
+
+## Summary of User Journeys
+
+| 👤 Who | 🎯 Goal | 🚶 Steps in the App |
+|---|---|---|
+| **Admin** | Set up products | Login → Products → Add Product (name, unit, price) |
+| **Admin** | Add a new customer | Login → Customers → Add Customer → fill details → 📍 Pin GPS → Save |
+| **Admin** | Create a daily route | Login → Routes → Create Route → Add Customers (in visit order) |
+| **Admin** | Record a price quote | Login → Customers → tap customer → Set Price → select product, enter rate → Save |
+| **Either** | Check in at a shop | Login → Check-in → find customer → tap Check In → auto-captures GPS |
+| **Either** | See map of today's route | Login → Routes → tap route → see customers listed → Map View for pins |
+| **Either** | Export backup | Login → Backup/Excel → Export to Excel → downloads `.xlsx` file |
+| **Partner** | See today's visits | Login → Dashboard → view today's check-in activity |
+
+---
+
 ## Features
 
 | Feature | Description |
