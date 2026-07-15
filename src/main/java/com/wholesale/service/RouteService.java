@@ -23,15 +23,18 @@ public class RouteService {
     private final RouteCustomerRepository routeCustomerRepository;
     private final CustomerRepository customerRepository;
     private final CustomerService customerService;
+    private final GoogleSheetsService googleSheetsService;
 
     public RouteService(RouteRepository routeRepository,
                         RouteCustomerRepository routeCustomerRepository,
                         CustomerRepository customerRepository,
-                        CustomerService customerService) {
+                        CustomerService customerService,
+                        GoogleSheetsService googleSheetsService) {
         this.routeRepository = routeRepository;
         this.routeCustomerRepository = routeCustomerRepository;
         this.customerRepository = customerRepository;
         this.customerService = customerService;
+        this.googleSheetsService = googleSheetsService;
     }
 
     public List<RouteDTO> findAll() {
@@ -80,6 +83,15 @@ public class RouteService {
 
         Route route = routeRepository.findById(routeId)
                 .orElseThrow(() -> new RuntimeException("Route not found: " + routeId));
+
+        // Sync to Google Sheets
+        try {
+            customerRepository.findById(customerId).ifPresent(c ->
+                googleSheetsService.syncRouteAssignment(c.getName(), route.getName()));
+        } catch (Exception e) {
+            // Sheet sync is best-effort
+        }
+
         return toDTO(route);
     }
 

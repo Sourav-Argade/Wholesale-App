@@ -29,3 +29,8 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Google Sheets service account credentials (DO NOT COMMIT!)
+service-account.json
+*-service-account.json
+*.google-service-account.json

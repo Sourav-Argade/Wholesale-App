@@ -25,15 +25,18 @@ public class CustomerService {
     private final CustomerPriceRepository customerPriceRepository;
     private final ProductRepository productRepository;
     private final VisitLogRepository visitLogRepository;
+    private final GoogleSheetsService googleSheetsService;
 
     public CustomerService(CustomerRepository customerRepository,
                            CustomerPriceRepository customerPriceRepository,
                            ProductRepository productRepository,
-                           VisitLogRepository visitLogRepository) {
+                           VisitLogRepository visitLogRepository,
+                           GoogleSheetsService googleSheetsService) {
         this.customerRepository = customerRepository;
         this.customerPriceRepository = customerPriceRepository;
         this.productRepository = productRepository;
         this.visitLogRepository = visitLogRepository;
+        this.googleSheetsService = googleSheetsService;
     }
 
     public List<CustomerDTO> findAll() {
@@ -53,6 +56,15 @@ public class CustomerService {
         updateFromDTO(customer, dto);
         customer.setCreatedBy(userId);
         Customer saved = customerRepository.save(customer);
+
+        // Sync to Google Sheets
+        googleSheetsService.syncCustomer(
+                saved.getName(), saved.getShopName(), saved.getPhone(),
+                saved.getAddress(),
+                saved.getLatitude() != null ? saved.getLatitude().toString() : null,
+                saved.getLongitude() != null ? saved.getLongitude().toString() : null,
+                null, saved.getNotes());
+
         return toDTO(saved);
     }
 
@@ -61,6 +73,15 @@ public class CustomerService {
                 .orElseThrow(() -> new RuntimeException("Customer not found: " + id));
         updateFromDTO(customer, dto);
         Customer saved = customerRepository.save(customer);
+
+        // Sync to Google Sheets
+        googleSheetsService.syncCustomer(
+                saved.getName(), saved.getShopName(), saved.getPhone(),
+                saved.getAddress(),
+                saved.getLatitude() != null ? saved.getLatitude().toString() : null,
+                saved.getLongitude() != null ? saved.getLongitude().toString() : null,
+                null, saved.getNotes());
+
         return toDTO(saved);
     }
 

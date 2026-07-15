@@ -1253,6 +1253,21 @@ function renderExcel() {
             <p class="text-sm text-muted mb-4">Export all your data to an Excel file for backup or offline access.</p>
             <button class="btn btn-primary btn-full" onclick="exportExcel()">📥 Export to Excel</button>
         </div>
+
+        <div class="card mb-4" id="googleSheetsCard">
+            <h3>☁️ Google Sheets Sync</h3>
+            <p class="text-sm text-muted" style="margin-bottom:8px">
+                Your data is automatically synced to Google Sheets when configured.
+                Open the sheet to view all your records in a spreadsheet.
+            </p>
+            <div id="sheetsStatus" class="text-sm text-muted">Checking Google Sheets status...</div>
+            <div class="flex gap-2 mt-4" style="flex-wrap:wrap">
+                <button class="btn btn-sm btn-success" onclick="openGoogleSheet()">📂 Open Sheet</button>
+                <button class="btn btn-sm btn-primary" onclick="exportToSheets()">📤 Export Full Snapshot</button>
+            </div>
+            <div id="sheetsError" class="text-sm mt-4" style="display:none;color:var(--danger)"></div>
+        </div>
+
         <div class="card mb-4">
             <h3>📥 Import Customers from Excel</h3>
             <p class="text-sm text-muted mb-4">Upload an Excel file with a "Customers" sheet to bulk-import customer data.</p>
@@ -1275,6 +1290,9 @@ function renderExcel() {
             </p>
         </div>
     `;
+
+    // Check Google Sheets status
+    checkSheetsStatus();
 }
 
 window.exportExcel = async () => {
@@ -1314,4 +1332,75 @@ window.importExcel = async (e) => {
     } catch {
         showToast('Import failed', true);
     }
+};
+
+// ==========================================
+//  GOOGLE SHEETS SYNC
+// ==========================================
+
+window.checkSheetsStatus = async () => {
+    const statusEl = document.getElementById('sheetsStatus');
+    if (!statusEl) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/google-sheets/status`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const data = await res.json();
+
+        if (data.configured) {
+            statusEl.innerHTML = '✅ <strong>Google Sheets connected</strong> — ' +
+                `<a href="${data.spreadsheetUrl}" target="_blank" rel="noopener">Open Sheet →</a>` +
+                (data.rowCount > 0 ? ` (${data.rowCount} rows)` : '');
+            document.getElementById('sheetsError').style.display = 'none';
+        } else if (data.lastError) {
+            statusEl.innerHTML = '⚠️ Google Sheets not configured';
+            const errorEl = document.getElementById('sheetsError');
+            errorEl.textContent = 'To enable: Set the GOOGLE_SHEETS_CREDENTIALS_JSON environment variable with your service account key.';
+            errorEl.style.display = 'block';
+        } else {
+            statusEl.textContent = '🔌 Google Sheets not configured — sync is disabled';
+        }
+    } catch (e) {
+        statusEl.textContent = 'Could not check Google Sheets status';
+    }
+};
+
+window.openGoogleSheet = () => {
+    // Try to get the URL from the API
+    fetch(`${API_BASE}/google-sheets/status`, {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.spreadsheetUrl) {
+            window.open(data.spreadsheetUrl, '_blank', 'noopener');
+        }
+    })
+    .catch(() => {
+        // Fallback: hardcoded URL
+        window.open('https://docs.google.com/spreadsheets/d/1Z4W9vMRBoVUnRQ_wMF_ry7_6Gh5nc02_87KReNK-hFk/edit', '_blank', 'noopener');
+    });
+};
+
+window.exportToSheets = async () => {
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = '⏳ Exporting...';
+    try {
+        const res = await fetch(`${API_BASE}/google-sheets/export`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('✅ ' + data.message);
+        } else {
+            showToast('Export failed: ' + data.message, true);
+        }
+    } catch {
+        showToast('Export to Sheets failed', true);
+    }
+    btn.disabled = false;
+    btn.textContent = '📤 Export Full Snapshot';
 };

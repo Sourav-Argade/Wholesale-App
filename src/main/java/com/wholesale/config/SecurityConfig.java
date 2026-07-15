@@ -35,6 +35,7 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/google-sheets/status").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/", "/index.html", "/css/**", "/js/**").permitAll()
                 .anyRequest().authenticated()
@@ -57,7 +58,8 @@ public class SecurityConfig {
                 String path = request.getRequestURI();
 
                 // Skip auth check for public endpoints
-                if (path.startsWith("/api/auth/") || path.startsWith("/h2-console/")
+                if (path.startsWith("/api/auth/") || path.equals("/api/google-sheets/status")
+                        || path.startsWith("/h2-console/")
                         || path.equals("/") || path.equals("/index.html")
                         || path.startsWith("/css/") || path.startsWith("/js/")) {
                     filterChain.doFilter(request, response);

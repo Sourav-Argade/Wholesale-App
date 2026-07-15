@@ -19,13 +19,16 @@ public class VisitLogService {
     private final VisitLogRepository visitLogRepository;
     private final CustomerRepository customerRepository;
     private final UserRepository userRepository;
+    private final GoogleSheetsService googleSheetsService;
 
     public VisitLogService(VisitLogRepository visitLogRepository,
                            CustomerRepository customerRepository,
-                           UserRepository userRepository) {
+                           UserRepository userRepository,
+                           GoogleSheetsService googleSheetsService) {
         this.visitLogRepository = visitLogRepository;
         this.customerRepository = customerRepository;
         this.userRepository = userRepository;
+        this.googleSheetsService = googleSheetsService;
     }
 
     public List<VisitLogDTO> getVisitsByCustomer(Long customerId) {
@@ -49,6 +52,24 @@ public class VisitLogService {
         log.setLatitude(lat);
         log.setLongitude(lon);
         VisitLog saved = visitLogRepository.save(log);
+
+        // Sync to Google Sheets
+        try {
+            String customerName = "";
+            String shopName = "";
+            if (customerRepository.findById(customerId).isPresent()) {
+                Customer c = customerRepository.findById(customerId).get();
+                customerName = c.getName();
+                shopName = c.getShopName();
+            }
+            googleSheetsService.syncCheckIn(customerName, shopName,
+                    saved.getVisitedDate(), saved.getNotes(),
+                    lat != null ? lat.toString() : null,
+                    lon != null ? lon.toString() : null);
+        } catch (Exception e) {
+            // Sheet sync is best-effort
+        }
+
         return toDTO(saved);
     }
 
