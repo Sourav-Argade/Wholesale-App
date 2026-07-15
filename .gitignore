@@ -1,0 +1,33 @@
+# Java
+*.class
+*.jar
+*.war
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.project
+.classpath
+*.prefs
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Maven Wrapper
+mvnw
+mvnw.cmd
+.mvn/
+
+# H2 Database (file mode)
+*.mv.db
+*.trace.db
+
+# Logs
+*.log
