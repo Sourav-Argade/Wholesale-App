@@ -275,12 +275,7 @@ async function api(path, options = {}) {
 
 // ====== Retry backend check from landing page ======
 window.handleLoginClick = function() {
-    if (backendOnline) {
-        showApp();
-    } else {
-        showToast('Backend is offline. Start the app locally or deploy to the cloud to sign in.', true);
-        document.getElementById('setupGuide')?.scrollIntoView({behavior: 'smooth'});
-    }
+    showApp();
 };
 
 window.retryBackendCheck = async function() {
