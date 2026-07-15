@@ -307,6 +307,46 @@ You can always **Export to Excel** from the app's Backup page for safe offline s
 | GET | `/api/excel/export` | Download all data as Excel |
 | POST | `/api/excel/import` | Import customers from Excel |
 
+## 🌐 GitHub Pages — Static App Preview
+
+The app's **static frontend shell** is auto-deployed to GitHub Pages so you can preview the UI without running the backend:
+
+👉 **https://sourav-argade.github.io/Wholesale-App/**
+
+### What works on GitHub Pages
+
+| Feature | Status |
+|---|---|
+| ✅ Landing page with feature showcase | Works |
+| ✅ App UI preview (navigation, layout) | Works |
+| ✅ Responsive mobile design | Works |
+| ❌ Login / Authentication | Backend required |
+| ❌ Customer data & CRUD | Backend required |
+| ❌ Map with customer pins | Backend required |
+| ❌ Check-in, prices, Excel export | Backend required |
+
+> ⚠️ GitHub Pages is a **static hosting service** — it cannot run Java or a database.
+> The full app with all features works when you run `mvn spring-boot:run` on your laptop.
+> The landing page automatically detects if the backend is running and switches to the live app.
+
+### How Deployment Works
+
+The `docs/` folder at the repository root is automatically deployed to GitHub Pages via GitHub Actions.
+
+**Files in `docs/`** (frontend only):
+- `index.html` — Landing page + app shell
+- `css/app.css` — Mobile-responsive styles
+- `js/app.js` — App logic with backend detection
+
+When you push to `main`, the **GitHub Actions workflow** (`.github/workflows/deploy-pages.yml`) automatically deploys the latest frontend.
+
+### Enabling GitHub Pages (One-Time Setup)
+
+If this hasn't been done yet:
+1. Go to your repo on GitHub → **Settings** → **Pages**
+2. Under "Build and deployment" → **Source**: select **GitHub Actions**
+3. The workflow file at `.github/workflows/deploy-pages.yml` will handle the rest
+
 ## GitHub — For Backup/Version Control Only
 
 This repository on GitHub is for **source code backup and version control** only. The app runs **locally on your laptop** — it is not deployed to any cloud service.

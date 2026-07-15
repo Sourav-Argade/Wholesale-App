@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Wholesale App — Route & Customer Manager</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="css/app.css" />
+    <style>
+        /* ====== Landing Page (shown when backend offline) ====== */
+        #landingScreen {
+            display: none;
+            min-height: 100vh;
+            flex-direction: column;
+        }
+        #landingScreen.active {
+            display: flex;
+        }
+
+        .landing-hero {
+            background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+            color: white;
+            padding: 48px 24px 60px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .landing-hero::after {
+            content: '';
+            position: absolute;
+            bottom: -40px;
+            left: -10%;
+            width: 120%;
+            height: 80px;
+            background: var(--gray-50);
+            border-radius: 50% 50% 0 0;
+        }
+        .landing-hero .logo {
+            font-size: 64px;
+            margin-bottom: 12px;
+            display: block;
+        }
+        .landing-hero h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .landing-hero p {
+            font-size: 16px;
+            opacity: 0.9;
+            max-width: 480px;
+            margin: 0 auto 24px;
+            line-height: 1.6;
+        }
+        .landing-hero .cta-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .landing-hero .btn-outline {
+            background: transparent;
+            border: 2px solid rgba(255,255,255,0.7);
+            color: white;
+        }
+        .landing-hero .btn-outline:hover {
+            background: rgba(255,255,255,0.15);
+            border-color: white;
+        }
+        .landing-hero .btn-white {
+            background: white;
+            color: var(--primary);
+        }
+        .landing-hero .btn-white:hover {
+            background: var(--gray-100);
+        }
+
+        .landing-section {
+            padding: 40px 24px;
+            max-width: 960px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .landing-section h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gray-900);
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+        @media (min-width: 640px) {
+            .features-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        @media (min-width: 900px) {
+            .features-grid {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+        }
+
+        .feature-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 24px 20px;
+            box-shadow: var(--shadow);
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary-light);
+        }
+        .feature-card .feature-icon {
+            font-size: 36px;
+            margin-bottom: 12px;
+            display: block;
+        }
+        .feature-card h3 {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 6px;
+        }
+        .feature-card p {
+            font-size: 14px;
+            color: var(--gray-500);
+            line-height: 1.6;
+        }
+
+        .steps-list {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .step-item {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--gray-100);
+        }
+        .step-item:last-child {
+            border-bottom: none;
+        }
+        .step-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .step-content {
+            flex: 1;
+        }
+        .step-content strong {
+            display: block;
+            font-size: 15px;
+            color: var(--gray-800);
+            margin-bottom: 2px;
+        }
+        .step-content span {
+            font-size: 14px;
+            color: var(--gray-500);
+            font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+            background: var(--gray-100);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .step-content .text-sm {
+            color: var(--gray-500);
+            font-family: inherit;
+            background: none;
+            padding: 0;
+        }
+
+        .landing-footer {
+            background: var(--gray-900);
+            color: var(--gray-400);
+            text-align: center;
+            padding: 32px 24px;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        .landing-footer a {
+            color: var(--primary-light);
+            text-decoration: none;
+        }
+        .landing-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 16px;
+        }
+        .status-badge.offline {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .status-badge.online {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .status-dot.offline {
+            background: #f59e0b;
+        }
+        .status-dot.online {
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .tech-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 16px;
+            background: var(--gray-100);
+            color: var(--gray-600);
+            font-size: 12px;
+            font-weight: 500;
+            margin: 3px;
+        }
+        .badge-strip {
+            text-align: center;
+            margin: 16px 0;
+        }
+
+        /* Backend detector banner */
+        .backend-banner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .backend-banner.online {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .backend-banner.offline {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .backend-banner a {
+            color: inherit;
+            font-weight: 600;
+        }
+
+        .landing-btn-retry {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--gray-100);
+            border: none;
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            color: var(--gray-700);
+            cursor: pointer;
+            transition: background 0.15s;
+            margin-top: 8px;
+        }
+        .landing-btn-retry:hover {
+            background: var(--gray-200);
+        }
+    </style>
+</head>
+<body>
+    <!-- ====== Backend Status Banner ====== -->
+    <div id="backendBanner" class="backend-banner offline" style="display:none">
+        <span id="bannerIcon">🔌</span>
+        <span id="bannerText">Checking backend connection...</span>
+    </div>
+
+    <!-- ====== Landing Screen (shown when backend offline) ====== -->
+    <div id="landingScreen" class="active">
+        <section class="landing-hero">
+            <span class="logo">📦</span>
+            <h1>Wholesale App</h1>
+            <p>Route &amp; Customer Manager — track customers, products, routes, and daily visits from your phone or laptop. Built for wholesale businesses, not spreadsheets.</p>
+            <div class="status-badge offline" id="landingStatusBadge">
+                <span class="status-dot offline"></span>
+                <span id="statusText">Backend Offline — Preview Mode</span>
+            </div>
+            <div class="cta-buttons">
+                <button class="btn btn-white" onclick="document.getElementById('appPreview').scrollIntoView({behavior:'smooth'})">🚀 See Features</button>
+                <button class="btn btn-outline" onclick="document.getElementById('setupGuide').scrollIntoView({behavior:'smooth'})">📖 Setup Guide</button>
+            </div>
+        </section>
+
+        <section class="landing-section" id="appPreview">
+            <h2>✨ Everything You Need</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <span class="feature-icon">👥</span>
+                    <h3>Customer Management</h3>
+                    <p>Add, edit, and search customers. Store shop names, phone numbers, GPS location, and notes. Pin your current location when standing at the shop.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">📦</span>
+                    <h3>Products &amp; Pricing</h3>
+                    <p>Maintain a product list with units and default prices. Set per-customer rates that keep a full history — never overwrite an old rate.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">🛣️</span>
+                    <h3>Routes &amp; Map View</h3>
+                    <p>Group customers into routes in visit order. View all your shops on an interactive OpenStreetMap, color-coded by route — no API key needed.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">✅</span>
+                    <h3>Daily Check-in</h3>
+                    <p>Log which customers you visited today with GPS proof. Build a visit history so you always know when you last stopped by.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">💰</span>
+                    <h3>Price History</h3>
+                    <p>See every rate you've quoted each customer per product, with dates. Always know the latest agreed price at a glance before you sell.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">📋</span>
+                    <h3>Excel Backup</h3>
+                    <p>Export all your data to an Excel file anytime for backup or offline sharing. Import customers from an existing spreadsheet too.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">🔐</span>
+                    <h3>Multi-User Access</h3>
+                    <p>Simple username/password login for you and 2-3 partners. Admin (full control) and Partner (view + check-in) roles included.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">🗺️</span>
+                    <h3>GPS Location Pinning</h3>
+                    <p>Use your phone browser's Geolocation API to pin a customer's shop location when you're standing right there. No external GPS device needed.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">🔍</span>
+                    <h3>Search &amp; Filter</h3>
+                    <p>Quickly find customers by name or shop. Filter routes to see who you'll visit and their latest rates before heading out.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="landing-section" style="background:var(--gray-100);padding:40px 24px;max-width:100%">
+            <div style="max-width:960px;margin:0 auto">
+                <h2>🛠️ Tech Stack</h2>
+                <div class="badge-strip">
+                    <span class="tech-badge">Java 17</span>
+                    <span class="tech-badge">Spring Boot 3</span>
+                    <span class="tech-badge">Spring Security</span>
+                    <span class="tech-badge">H2 Database</span>
+                    <span class="tech-badge">JPA / Hibernate</span>
+                    <span class="tech-badge">Apache POI</span>
+                    <span class="tech-badge">Leaflet.js</span>
+                    <span class="tech-badge">OpenStreetMap</span>
+                    <span class="tech-badge">Mobile-first CSS</span>
+                    <span class="tech-badge">REST API</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="landing-section" id="setupGuide">
+            <h2>🚀 Run It on Your Laptop</h2>
+            <p style="text-align:center;color:var(--gray-500);margin-bottom:24px">The app runs 100% locally. Your partners connect from their phones over Wi-Fi. No cloud, no API keys, no monthly fees.</p>
+            <div class="steps-list">
+                <div class="step-item">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <strong>Install Java 17+ &amp; Maven</strong>
+                        <span class="text-sm">Download from <a href="https://adoptium.net" target="_blank" rel="noopener">adoptium.net</a> or use your package manager</span>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <strong>Clone the repository</strong>
+                        <span>git clone https://github.com/Sourav-Argade/Wholesale-App.git</span>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <strong>Start the app</strong>
+                        <span>cd Wholesale-App &amp;&amp; mvn spring-boot:run</span>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <strong>Open in browser</strong>
+                        <span>http://localhost:8080</span>
+                        <span class="text-sm">Login with <strong>admin</strong> / <strong>admin123</strong></span>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <strong>Partners connect from phones</strong>
+                        <span class="text-sm">On the same Wi-Fi, open <strong>http://YOUR_LAPTOP_IP:8080</strong></span>
+                    </div>
+                </div>
+            </div>
+            <div style="text-align:center;margin-top:24px">
+                <a href="https://github.com/Sourav-Argade/Wholesale-App" target="_blank" rel="noopener" class="btn btn-primary">📂 View on GitHub</a>
+                <button class="landing-btn-retry" onclick="retryBackendCheck()">🔄 Try Backend Connection</button>
+            </div>
+        </section>
+
+        <section class="landing-section" style="max-width:100%;background:var(--gray-900);color:white;padding:40px 24px;text-align:center">
+            <div style="max-width:600px;margin:0 auto">
+                <p style="font-size:18px;font-weight:600;margin-bottom:8px">This is the static app shell</p>
+                <p style="font-size:14px;opacity:0.7;line-height:1.7">
+                    The full app with database, authentication, and all features runs when you start the Spring Boot backend on your machine.
+                    This GitHub Pages site showcases the app's design and capabilities.
+                </p>
+            </div>
+        </section>
+
+        <div class="landing-footer">
+            <p><strong>Wholesale App</strong> — Built with Java, Spring Boot &amp; ❤️</p>
+            <p><a href="https://github.com/Sourav-Argade/Wholesale-App" target="_blank" rel="noopener">GitHub Repository</a> &middot; Free &amp; Open Source</p>
+        </div>
+    </div>
+
+    <!-- ====== Login Screen (shown when backend online) ====== -->
+    <div id="loginScreen" class="screen">
+        <div class="login-container">
+            <div class="login-logo">📦</div>
+            <h1>Wholesale App</h1>
+            <p class="login-subtitle">Route &amp; Customer Manager</p>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" placeholder="Enter username" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter password" required autocomplete="current-password">
+                </div>
+                <div id="loginError" class="error-msg hide"></div>
+                <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ====== Main App Screen (shown when backend online + logged in) ====== -->
+    <div id="appScreen" class="screen">
+        <header class="app-header">
+            <button id="menuToggle" class="icon-btn" aria-label="Menu">☰</button>
+            <h2 id="pageTitle">Dashboard</h2>
+            <button id="logoutBtn" class="icon-btn" aria-label="Logout">🚪</button>
+        </header>
+
+        <nav id="sideNav" class="side-nav">
+            <div class="side-nav-header">
+                <span class="side-nav-user" id="navUserName">User</span>
+                <span class="side-nav-role" id="navUserRole">Role</span>
+            </div>
+            <ul class="side-nav-menu">
+                <li><a href="#" data-page="dashboard" class="nav-active">📊 Dashboard</a></li>
+                <li><a href="#" data-page="customers">👥 Customers</a></li>
+                <li><a href="#" data-page="products">📦 Products</a></li>
+                <li><a href="#" data-page="routes">🛣️ Routes</a></li>
+                <li><a href="#" data-page="mapview">🗺️ Map View</a></li>
+                <li><a href="#" data-page="visits">✅ Check-in</a></li>
+                <li><a href="#" data-page="prices">💰 Price History</a></li>
+                <li><a href="#" data-page="excel">📋 Backup / Excel</a></li>
+            </ul>
+        </nav>
+
+        <div id="navOverlay" class="overlay hide"></div>
+
+        <main id="mainContent" class="main-content"></main>
+    </div>
+
+    <!-- ====== Modal ====== -->
+    <div id="modalOverlay" class="modal-overlay hide">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalTitle">Modal</h3>
+                <button id="modalClose" class="icon-btn">✕</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
